@@ -1,0 +1,212 @@
+#include <QTRSensors.h>
+#include <QuickPID.h>
+#include <Timer.h>
+
+//motor pins
+const int PWMA = 11;
+const int AIN2 = 10;
+const int AIN1 = 9;
+const int STDBY = 8;
+const int BIN1 = 7;
+const int BIN2 = 6;
+const int PWMB = 5;
+
+//sensor stuff
+const int s0 = 7;  //left
+const int s1 = 6;  //middle
+const int s2 = 5;  //right
+QTRSensors qtr;
+uint16_t sensorValues[3];
+
+//for PID
+float Kp = 0.6;       //low single digits
+float Ki = 0.05;       // <0.1
+float Kd = 1.5;       //low single digits
+uint8_t multiP = 1;
+uint8_t multiI  = 1;
+uint8_t multiD = 1;
+uint8_t Kpfinal;
+uint8_t Kifinal;
+uint8_t Kdfinal;
+float Pvalue;
+float Ivalue;
+float Dvalue;
+
+//timer stuff
+Timer timer;
+Timer timer1;
+Timer timer2;
+int straight1 = 30000; //time to first straight
+int straight2 = 5000; //time from end of first straight to the next straight w gaps
+
+//PID and motor stuff
+uint16_t position;
+int P, D, I, previousError, PIDvalue, error;
+int lsp, rsp;
+int speed = -235;
+int straightTime = 1250;
+boolean gap = false;
+boolean goStraight = true;
+
+void setup() {
+  //pins
+  pinMode(PWMA, OUTPUT);
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
+  pinMode(PWMB, OUTPUT);
+  pinMode(STDBY, OUTPUT);
+  digitalWrite(STDBY, HIGH);
+  analogWrite(s0, INPUT);
+  analogWrite(s1, INPUT);
+  analogWrite(s2, INPUT);
+
+  //sensor setup
+  qtr.setTypeAnalog();
+  qtr.setSensorPins((const uint8_t[]){ s0, s1, s2 }, 3);
+  delay(500);
+  pinMode(LED_BUILTIN, OUTPUT);  //Arduino LED
+  digitalWrite(LED_BUILTIN, HIGH);
+  //callibrating sensors
+  for (uint16_t i = 0; i < 400; i++) {
+    qtr.calibrate();
+  }
+  digitalWrite(LED_BUILTIN, LOW);  //indicates done with callibration
+  //print callibration minimum value
+  Serial.begin(9600);
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.print(qtr.calibrationOn.minimum[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+  delay(1000);
+  timer.start();
+}
+
+
+void loop() {
+  if (timer.state()==RUNNING && timer.read()>straight1){
+    gap = true;
+    timer.stop();
+    timer1.start();
+  }
+  else if (timer1.state()==RUNNING && timer1.read()>straight2){
+    digitalWrite(LED_BUILTIN, HIGH);
+    gap = false;
+    goStraight = false;
+  }
+  robot_control();
+}
+
+void motorWrite(int spd, int pin_IN1, int pin_IN2, int pin_PWM) {
+  if (spd < 0) {  //go one way
+    digitalWrite(pin_IN1, HIGH);
+    digitalWrite(pin_IN2, LOW);
+  } else {  //go the other way
+    digitalWrite(pin_IN1, LOW);
+    digitalWrite(pin_IN2, HIGH);
+  }
+  spd = abs(spd);
+  spd = constrain(spd, 0, 255);
+  analogWrite(pin_PWM, spd);
+}
+
+void drive(int speedL, int speedR) {
+  motorWrite(speedL, AIN1, AIN2, PWMA);
+  motorWrite(speedR, BIN1, BIN2, PWMB);
+}
+
+void robot_control(){
+  // read calibrated sensor values and obtain a measure of the line position
+  // from 0 to 4000 (for a white line, use readLineWhite() instead)
+  position = qtr.readLineBlack(sensorValues);
+  error = 1000 - position;
+  while(sensorValues[0]<=600 && sensorValues[1]<=600 && sensorValues[2]<=600){ // A case when the line follower leaves the line
+    if(previousError > 0){ //if line was to left before
+      timer2.start();
+      while(sensorValues[0]<=600 && sensorValues[1]<=600 && sensorValues[2]<=600){
+        if (timer2.read()<450){
+          drive(speed, -speed); //turn left
+          position = qtr.readLineBlack(sensorValues);
+        }
+        else{ //turned for too long
+          drive(-speed, speed);
+          delay(400);
+          drive(0,0);
+          position = qtr.readLineBlack(sensorValues);
+          while(gap==false && sensorValues[1]<=300 && sensorValues[2]<=300){
+            drive(100,-100);
+            position = qtr.readLineBlack(sensorValues);
+          }
+          timer2.stop();
+          if (goStraight == true){
+            drive(-255,-255);
+            delay(straightTime);
+          }
+          else{
+            position = qtr.readLineBlack(sensorValues);
+            while(sensorValues[1] <= 300){
+              drive(100,-100);
+              position = qtr.readLineBlack(sensorValues); 
+            }
+          }
+          position = qtr.readLineBlack(sensorValues);
+          break;
+        }
+      }
+    }
+    else{
+      timer2.start();
+      while(sensorValues[0]<=600 && sensorValues[1]<=600 && sensorValues[2]<=600){
+        if (timer2.read()<450){
+          drive(-speed, speed); //turn right
+          position = qtr.readLineBlack(sensorValues);
+        }
+        else{ //turned for too long
+          drive(speed, -speed);
+          delay(400);
+          drive(0,0);
+          position = qtr.readLineBlack(sensorValues);
+          while(gap==false && sensorValues[0]<=300 && sensorValues[1]<=300){
+            drive(-100,100);
+            position = qtr.readLineBlack(sensorValues);
+          }
+          timer2.stop();
+          if (goStraight == true){
+            drive(-255,-255);
+            delay(straightTime);
+          }
+          else if (goStraight == false){
+            position = qtr.readLineBlack(sensorValues);
+            while(sensorValues[1] <= 300){
+              drive(-100,100);
+              position = qtr.readLineBlack(sensorValues); 
+            }
+          }
+          position = qtr.readLineBlack(sensorValues);
+          break;
+        }
+      }
+    }
+    position = qtr.readLineBlack(sensorValues);
+  }
+  
+  PID(error, speed);
+}
+
+void PID(int error, int spd){
+    P = error;
+    I = I + error;
+    D = error - previousError;
+    
+    Pvalue = (Kp/pow(10,multiP))*P;
+    Ivalue = (Ki/pow(10,multiI))*I;
+    Dvalue = (Kd/pow(10,multiD))*D; 
+
+    float PIDvalue = Pvalue + Ivalue + Dvalue;
+    previousError = error;
+    lsp = spd + PIDvalue;
+    rsp = spd - PIDvalue;
+    drive(lsp,rsp);
+}
