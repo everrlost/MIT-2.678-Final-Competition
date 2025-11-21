@@ -1,5 +1,5 @@
-// I worked with the lab 9 documents, the lab 10 pre-lab sample code from Prof. Rowell,
-// Jay Bhan, and will be working with Ian Frankel for the lab 10 and onwards
+// Kate Carpenter and Ian Frankel
+// 2.678 Fall 2025
 
 // code from sample code
 // Pololu #713 motor driver pin assignments
