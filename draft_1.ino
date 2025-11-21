@@ -11,19 +11,18 @@ const int BIN1  = 7;
 const int BIN2  = 6;
 const int PWMB  = 5;
 const int STDBY = 8;
-const int L_sens = A7;
-const int M_sens = A6;
-const int R_sens = A5;
+const int L_sens = A1;
+const int M_sens = A2;
+const int R_sens = A3;
 
 // motor speeds
 int speedL = 0;
 int speedR = 0;
 
-// time stamps
-const int beg_rumba = 12700; //12500
-const int end_rumba = 18650;
-const int beg_corner = 21300;
-
+// time stamps for hardcoding corners
+// const int beg_rumba = 12700; //12500
+// const int end_rumba = 18650;
+// const int beg_corner = 21300;
 
 Timer timer;
 Timer t_turn;
