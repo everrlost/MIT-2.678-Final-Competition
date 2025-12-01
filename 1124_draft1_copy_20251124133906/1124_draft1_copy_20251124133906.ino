@@ -66,27 +66,11 @@ void loop(){
     if (isLineLost(L_sensVal, M_sensVal, R_sensVal)) diffDrive(50, turn);
     else diffDrive(230, turn);
 
-    // if (L_sensVal < (R_sensVal-7)) {
-    //   diffDrive(150, -error * 3);  // forward_speed, turn_amount
-
-    // }
-
-    // if (R_sensVal < (L_sensVal-7)) { //7
-    //    diffDrive(150, -error * 3);  // forward_speed, turn_amount
-
-    // }
-
-    // if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) {
-    //   speedL = 150; //230,232
-    //   speedR = 150;
-    //   diffDrive(150, 0);
-    // }
-
-    
+   
   }
 
 
-  while (timer.read() > beg_rumba && timer.read() < end_rumba){ // RUMBA while in the curve, activate slow drive, between 27 to 40 secs
+while (timer.read() > beg_rumba && timer.read() < end_rumba){
 
   L_sensVal = map(analogRead(L_sens), 0, 1000, 0, 100);
   M_sensVal = map(analogRead(M_sens), 0, 1000, 0, 100);
@@ -94,38 +78,29 @@ void loop(){
 
   int error = L_sensVal - R_sensVal;
 
-    if (abs(error) < 7) {
-      diffDrive(80, 0);
-    } else if (error > 7) {
-      diffDrive(60, error * 2);  
-    } else {
-      diffDrive(60, error * 2);
-    }
+  // --- THIN STRIP CONTROL ---
+  // 0–7 difference → treat as centered
+  // 7–15 difference → gentle correction
+  // >15 difference → strong correction but capped
 
-    // if (L_sensVal < (R_sensVal-7) && L_sensVal > (R_sensVal-10)) { //small adjustment, left is off track
-    //   speedL = 130; //(140,50)(120,70)
-    //   speedR = 65;
-    // }
-    // else if (L_sensVal < (R_sensVal-10)) { // big adjustment, left is off track
-    //   speedL = 225; //(225,-115)
-    //   speedR = -115;
-    // }
+  if (abs(error) < 7) {
+      // deadband so it doesn’t twitch like a nervous chihuahua
+      diffDrive(150, 0);
 
-    // if (R_sensVal < (L_sensVal-7)&& R_sensVal > (L_sensVal-10)) { // small adjustment, right is off
-    //   speedR = 130;
-    //   speedL = 65;
-    // }
-    // else if (R_sensVal < (L_sensVal-10)) { // big adjustment, right is off
-    //   speedR = 225;
-    //   speedL = -115;
-    // }
+  } else {
+      int turn;
 
-    // if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) { // in the range
-    //   speedL = 70;
-    //   speedR = 82;
-    // }
+      if (abs(error) < 15) {
+        // small drift → tiny nudge, NOT a full punch
+        turn = error * 0.8;
+      } else {
+        // big drift → stronger but capped so it doesn’t fling off the strip
+        turn = constrain(error * 1.4, -60, 60);
+      }
 
-    // drive(speedL, speedR);
+      diffDrive(70, turn);
+  }
+}
   }
 
   while (timer.read() > end_rumba && timer.read() < beg_corner){ //Past the curve, activate normal drive. gaps
@@ -133,22 +108,8 @@ void loop(){
     M_sensVal = map(analogRead(M_sens), 0, 1000, 0, 100);
     R_sensVal = map(analogRead(R_sens), 0, 1000, 0, 100);
 
-    if (L_sensVal < (R_sensVal-7)) {
-      speedL = 155;
-      speedR = 55;
-    }
 
-    if (R_sensVal < (L_sensVal-7)) {
-      speedR = 155;
-      speedL = 55;
-    }
-
-    if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) {
-      speedL = 130; //120,  130
-      speedR = 142; //122
-    }
-
-    drive(speedL, speedR);
+    diffDrive(0, 255);
   }
 
 
@@ -181,7 +142,7 @@ void loop(){
 
     drive(speedL, speedR);
 
-    if (M_sensVal < 40 && L_sensVal < 40 && R_sensVal < 40){ //Barbline is off track
+    if (M_sensVal < 75 && L_sensVal < 75 && R_sensVal < 75){ //bot is off track
     uint32_t star_time = timer.read();
     while((timer.read()-star_time) < 250){ //turn left for 350 ms, check for path along the way.
         L_sensVal = map(analogRead(L_sens), 0, 1000, 0, 100);
