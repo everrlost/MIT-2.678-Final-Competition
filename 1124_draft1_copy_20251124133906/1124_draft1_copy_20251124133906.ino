@@ -9,7 +9,7 @@ const int PWMB  = 5;
 const int STDBY = 8;
 const int L_sens = A1;
 const int M_sens = A2;
-const int R_sens = A;
+const int R_sens = A3;
 
 const bool L_invert = true;
 const bool R_invert = false;
@@ -19,13 +19,18 @@ int speedL = 0;
 int speedR = 0;
 
 // time stamps
-const int beg_rumba = 12700; //12500
+const int beg_rumba = 127000; //12500
 const int end_rumba = 18650;
 const int beg_corner = 21300;
 
+float prevError = 0;
+unsigned long lastTime = 0;
 
 Timer timer;
 Timer t_turn;
+float errorBias = 0;
+int directionBias = 0;   // +1 = push right, -1 = push left
+
 
 void setup()  {
   Serial.begin(9600);
@@ -55,22 +60,29 @@ void loop(){
     L_sensVal = map(analogRead(L_sens), 0, 1000, 0, 100);
     M_sensVal = map(analogRead(M_sens), 0, 1000, 0, 100);
     R_sensVal = map(analogRead(R_sens), 0, 1000, 0, 100);
-    if (L_sensVal < (R_sensVal-7)) {
-      speedL = 230; //  (140s, 160t, 50t), (160s, 170t, 50t), (200, 185, 50), (250s,200t, 50t), (230s, 230t, 60t)
-      speedR = 60;
-    }
+    int error = getSmartError(L_sensVal, M_sensVal, R_sensVal);
+    //Serial.println(error);
+    int turn = PD_turn(-error, 7.0, .5);   
+    if (isLineLost(L_sensVal, M_sensVal, R_sensVal)) diffDrive(50, turn);
+    else diffDrive(230, turn);
 
-    if (R_sensVal < (L_sensVal-7)) { //7
-      speedR = 230;
-      speedL = 60;
-    }
+    // if (L_sensVal < (R_sensVal-7)) {
+    //   diffDrive(150, -error * 3);  // forward_speed, turn_amount
 
-    if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) {
-      speedL = 230; //230,232
-      speedR = 230;
-    }
+    // }
 
-    drive(speedL, speedR);
+    // if (R_sensVal < (L_sensVal-7)) { //7
+    //    diffDrive(150, -error * 3);  // forward_speed, turn_amount
+
+    // }
+
+    // if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) {
+    //   speedL = 150; //230,232
+    //   speedR = 150;
+    //   diffDrive(150, 0);
+    // }
+
+    
   }
 
 
@@ -80,30 +92,40 @@ void loop(){
   M_sensVal = map(analogRead(M_sens), 0, 1000, 0, 100);
   R_sensVal = map(analogRead(R_sens), 0, 1000, 0, 100);
 
-    if (L_sensVal < (R_sensVal-7) && L_sensVal > (R_sensVal-10)) { //small adjustment, left is off track
-      speedL = 130; //(140,50)(120,70)
-      speedR = 65;
-    }
-    else if (L_sensVal < (R_sensVal-10)) { // big adjustment, left is off track
-      speedL = 225; //(225,-115)
-      speedR = -115;
+  int error = L_sensVal - R_sensVal;
+
+    if (abs(error) < 7) {
+      diffDrive(80, 0);
+    } else if (error > 7) {
+      diffDrive(60, error * 2);  
+    } else {
+      diffDrive(60, error * 2);
     }
 
-    if (R_sensVal < (L_sensVal-7)&& R_sensVal > (L_sensVal-10)) { // small adjustment, right is off
-      speedR = 130;
-      speedL = 65;
-    }
-    else if (R_sensVal < (L_sensVal-10)) { // big adjustment, right is off
-      speedR = 225;
-      speedL = -115;
-    }
+    // if (L_sensVal < (R_sensVal-7) && L_sensVal > (R_sensVal-10)) { //small adjustment, left is off track
+    //   speedL = 130; //(140,50)(120,70)
+    //   speedR = 65;
+    // }
+    // else if (L_sensVal < (R_sensVal-10)) { // big adjustment, left is off track
+    //   speedL = 225; //(225,-115)
+    //   speedR = -115;
+    // }
 
-    if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) { // in the range
-      speedL = 70;
-      speedR = 82;
-    }
+    // if (R_sensVal < (L_sensVal-7)&& R_sensVal > (L_sensVal-10)) { // small adjustment, right is off
+    //   speedR = 130;
+    //   speedL = 65;
+    // }
+    // else if (R_sensVal < (L_sensVal-10)) { // big adjustment, right is off
+    //   speedR = 225;
+    //   speedL = -115;
+    // }
 
-    drive(speedL, speedR);
+    // if (L_sensVal < (R_sensVal+7) && L_sensVal > (R_sensVal-7)) { // in the range
+    //   speedL = 70;
+    //   speedR = 82;
+    // }
+
+    // drive(speedL, speedR);
   }
 
   while (timer.read() > end_rumba && timer.read() < beg_corner){ //Past the curve, activate normal drive. gaps
@@ -206,5 +228,55 @@ void drive(int spdL, int spdR){
   motorWrite(-spdR, BIN1, BIN2, PWMB);}
   else{ motorWrite(spdR, BIN1, BIN2, PWMB);}
   }
+
+void diffDrive(int forward, int turn) {
+  int L = forward + turn;
+  int R = forward - turn;
+
+  L = constrain(L, -255, 255);
+  R = constrain(R, -255, 255);
+
+  drive(L, R);
+}
+
+int PD_turn(int error, float Kp, float Kd) {
+    unsigned long now = millis();
+    float dt = (now - lastTime) / 1000.0;
+    if (dt == 0) dt = 0.001;  // don't divide by zero like a muppet
+
+    float dError = (error - prevError) / dt;
+
+    float turn = Kp * error + Kd * dError;
+
+    prevError = error;
+    lastTime = now;
+    return constrain(turn, -255, 255);
+}
+
+int getSmartError(int L, int M, int R) {
+    static int directionBias = 0;
+   
+    int error = L - R;
+
+    // track direction
+    if (error > 20) directionBias = +1;
+    else if (error < 20) directionBias = -1;
+    else directionBias = 0;
+
+    // detect total loss
+    bool lost = isLineLost(L,M,R);
+
+    // if blind, shove error hard in previous direction
+    if (lost) {
+        error = directionBias * 15;  // tune this value!
+
+    }
+
+    return error;
+}
+bool isLineLost(int L, int M, int R) {
+  return (L < 75 && M < 75 && R < 75);  // tune threshold if needed
+}
+
 
 // void drive_original()

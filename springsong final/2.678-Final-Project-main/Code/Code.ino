@@ -11,10 +11,12 @@ const int BIN1 = 7;
 const int BIN2 = 6;
 const int PWMB = 5;
 
+const bool Ainvert = true;
+const bool Binvert = false;
 //sensor stuff
-const int s0 = 7;  //left
-const int s1 = 6;  //middle
-const int s2 = 5;  //right
+const int s0 = A1;  //left
+const int s1 = A2;  //middle
+const int s2 = A2;  //right
 QTRSensors qtr;
 uint16_t sensorValues[3];
 
@@ -112,9 +114,12 @@ void motorWrite(int spd, int pin_IN1, int pin_IN2, int pin_PWM) {
   analogWrite(pin_PWM, spd);
 }
 
-void drive(int speedL, int speedR) {
-  motorWrite(speedL, AIN1, AIN2, PWMA);
-  motorWrite(speedR, BIN1, BIN2, PWMB);
+void drive(int speedL, int speedR){
+  if (Ainvert){
+  motorWrite(-speedL, AIN1, AIN2, PWMA);}
+  else{motorWrite(speedL, AIN1, AIN2, PWMA);}
+  if (Binvert){motorWrite(-speedR, BIN1, BIN2, PWMB);}
+  else{motorWrite(speedR, BIN1, BIN2, PWMB);}
 }
 
 void robot_control(){
