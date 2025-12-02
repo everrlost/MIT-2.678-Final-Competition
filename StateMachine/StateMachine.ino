@@ -29,7 +29,7 @@ float prevError = 0;
 unsigned long lastTime = 0;
 float kp, ki, kd;
 
-
+int error = 0;
 Timer timer;
 Timer t_turn;
 float errorBias = 0;
@@ -87,7 +87,8 @@ void loop() {
   int M = map(analogRead(M_sens), 0, 1000, 0, 100);
   int R = map(analogRead(R_sens), 0, 1000, 0, 100);
 
-  int error = L - R;   // your original error model
+  if (state == RUMBA) error = M + R - 255 + 7 * L
+    else error = L - M;   // your original error model
   int turn  = PID_turn(error, kp, ki, kd);  // tune these later
 
   //---------------------------------------------
@@ -113,7 +114,7 @@ void loop() {
     // -------------------------------------------
     case FIRST_TURN:
       kp = 10.0; ki = 0.0; kd = 1.0;  
-      diffDrive(200, turn);
+      diffDrive(255, turn);
 
       if (-error > 50) advanceState(SECOND_TURN);
       if (t > 3000) advanceState(SECOND_TURN);
@@ -122,22 +123,22 @@ void loop() {
     // -------------------------------------------
     case SECOND_TURN:
       kp = 15.0; ki = 0.00005; kd = 1.0;  
-      diffDrive(140, turn * 1.3);
+      diffDrive(200, turn * 1.3);
       if (t > 5000) advanceState(RUMBA);
       break;
 
     // -------------------------------------------
     case RUMBA:
       kp = 1.0; ki = 0.00005; kd = 1.0;
-      diffDrive(120, turn * 0.8);
-      if (-error > 50) advanceState(ONE_EIGHTY);
+      diffDrive(250, turn );
+      if (-error > 75) advanceState(ONE_EIGHTY);
       if (t > 5500) advanceState(ONE_EIGHTY);
       break;
 
     // -------------------------------------------
     case ONE_EIGHTY:
       kp = 10.0; ki = 0.00005; kd = 1.0;
-      diffDrive(0, turn * 2);   // spin
+      diffDrive(50, turn * 2);   // spin
       if (t > 6000) advanceState(SHARP_SQUIGGLES);
       break;
 
@@ -196,7 +197,7 @@ void loop() {
 
     // -------------------------------------------
     case THREE_SIXTY:
-      diffDrive(0, 255);
+      diffDrive(50, 255);
       if (t > 11000) advanceState(RHOMBUS);
       break;
 
@@ -219,6 +220,7 @@ void loop() {
       diffDrive(255, turn);
       break;
   }
+  delayMicroseconds(100);
 }
 
 
