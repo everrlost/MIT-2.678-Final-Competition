@@ -11,7 +11,7 @@ const int L_sens = A1;
 const int M_sens = A2;
 const int R_sens = A3;
 
-const bool L_invert = true;
+const bool L_invert = false;
 const bool R_invert = false;
 
 // motor speeds
@@ -87,8 +87,8 @@ void loop() {
   int M = map(analogRead(M_sens), 0, 1000, 0, 100);
   int R = map(analogRead(R_sens), 0, 1000, 0, 100);
 
-  if (state == RUMBA) error = M + R - 255 + 7 * L
-    else error = L - M;   // your original error model
+  if (state == RUMBA) error = R-(L*1.05);//M + R - 255 + 7 * L;
+    else error = R - L;   // your original error model
   int turn  = PID_turn(error, kp, ki, kd);  // tune these later
 
   //---------------------------------------------
@@ -98,56 +98,57 @@ void loop() {
 
     // -------------------------------------------
     case START_STRAIGHT:
-      kp = 2.0; ki = 0.0; kd = 1.0; 
+      kp = 15.0; ki = 0.0; kd = 1.0; 
       diffDrive(255, turn);
-      if (t > 1000) advanceState(FIRST_CURVE);
+      if (t > 1100) advanceState(FIRST_CURVE);
       break;
 
     // -------------------------------------------
     case FIRST_CURVE:
-      kp = 2.0; ki = 0.0; kd = 1.0; 
-      diffDrive(255, turn);
+      kp = 18.0; ki = 0.0; kd = 5.0; 
+      diffDrive(255, turn*1.15);
 
-      if (t > 2000) advanceState(FIRST_TURN);
+      if (t > 2500) advanceState(FIRST_TURN);
       break;
 
     // -------------------------------------------
     case FIRST_TURN:
-      kp = 10.0; ki = 0.0; kd = 1.0;  
+      kp = 16.0; ki = 0.0; kd = 5.0;  
       diffDrive(255, turn);
 
-      if (-error > 50) advanceState(SECOND_TURN);
-      if (t > 3000) advanceState(SECOND_TURN);
+      if (-error > 30) advanceState(SECOND_TURN);
+      if (t > 6500) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
     case SECOND_TURN:
       kp = 15.0; ki = 0.00005; kd = 1.0;  
-      diffDrive(200, turn * 1.3);
-      if (t > 5000) advanceState(RUMBA);
+      diffDrive(200, turn * 1.2);
+      if (t > 7500) advanceState(RUMBA);
       break;
 
     // -------------------------------------------
     case RUMBA:
-      kp = 1.0; ki = 0.00005; kd = 1.0;
-      diffDrive(250, turn );
+      kp = 3.0; ki = 0.00001; kd = 1.0;
+      diffDrive(250, turn);
       if (-error > 75) advanceState(ONE_EIGHTY);
-      if (t > 5500) advanceState(ONE_EIGHTY);
+      if (t > 11000) advanceState(ONE_EIGHTY);
       break;
 
     // -------------------------------------------
     case ONE_EIGHTY:
       kp = 10.0; ki = 0.00005; kd = 1.0;
-      diffDrive(50, turn * 2);   // spin
-      if (t > 6000) advanceState(SHARP_SQUIGGLES);
+      if (t - stateStart < 650) diffDrive(170, 200);   // spin
+      if (t - stateStart > 650) diffDrive(255, error);
+      if (t - stateStart > 1200) advanceState(SHARP_SQUIGGLES);
       break;
 
     // -------------------------------------------
     case SHARP_SQUIGGLES:
       kp = 15.0; ki = 0.0; kd = 1.0;
-      diffDrive(200, turn * 1.4);
-      // SENSOR TRANSITION:
-      // Instead of time, we check if the line has disappeared.
+      diffDrive(200, turn * 1.2);
+      //SENSOR TRANSITION:
+      //Instead of time, we check if the line has disappeared.
       if (isLineLost(L, M, R)) {
         gapCounter++; 
       } else {
@@ -155,11 +156,11 @@ void loop() {
       }
 
       // If we have seen white for enough consecutive loops, switch state
-      if (gapCounter > 5) {
+      if (gapCounter > 300) {
         gapCounter = 0; // Reset for next time
         advanceState(MISSING_LINE);
       }
-      if (t > 8600) advanceState(MISSING_LINE); 
+      if (t > 16000) advanceState(MISSING_LINE); 
       break;
 
     // -------------------------------------------
@@ -168,7 +169,7 @@ void loop() {
       
       if (isLineLost(L, M, R)) diffDrive(255, 0);
       
-      else diffDrive(255, turn)
+      else diffDrive(255, turn);
       
       if (!isLineLost(L, M, R)) {
         gapCounter++; 
@@ -182,7 +183,7 @@ void loop() {
         gapCounter = 0; // Reset for next time
         advanceState(LEFT_90);
       }
-      if (t > 9000) advanceState(MISSING_LINE); 
+      if (t > 20000) advanceState(MISSING_LINE); 
       break;
 
 
@@ -192,26 +193,26 @@ void loop() {
       kp = 3.0; ki = 0.0; kd = 1.0;
       if (isLineLost(L, M, R)) diffDrive(0, -180);
       else diffDrive(255, turn);
-      if (t > 10000) advanceState(THREE_SIXTY);
+      if (t > 22000) advanceState(THREE_SIXTY);
       break;
 
     // -------------------------------------------
     case THREE_SIXTY:
       diffDrive(50, 255);
-      if (t > 11000) advanceState(RHOMBUS);
+      if (t > 26000) advanceState(RHOMBUS);
       break;
 
     // -------------------------------------------
     case RHOMBUS:
       kp = 5.0; ki = 0.0; kd = 1.0;
       diffDrive(255, turn);
-      if (t > 14000) advanceState(CIRCLE);
+      if (t > 29000) advanceState(CIRCLE);
       break;
 
     // -------------------------------------------
     case CIRCLE:
       diffDrive(255, 80);   // orbit-like
-      if (t > 16000) advanceState(DONE);
+      if (t > 34000) advanceState(DONE);
       break;
 
     // -------------------------------------------
@@ -314,7 +315,7 @@ int getSmartError(int L, int M, int R) {
     return error;
 }
 bool isLineLost(int L, int M, int R) {
-  return (L < 75 && M < 75 && R < 75);  // tune threshold if needed
+  return (L < 60 && M < 60 && R < 60);  // tune threshold if needed
 }
 
 void advanceState(State next) {

@@ -1,17 +1,19 @@
-const int PWMA=9; // Pololu drive A
-const int AIN2=8;
-const int AIN1 =7;
-const int STDBY=6;
-const int BIN1 =5; // Pololu drive B
-const int BIN2 =4;
-const int PWMB =3;
-
+const int BIN1  = 10;
+const int BIN2  = 9;
+const int PWMB  = 11;
+const int AIN1  = 7;
+const int AIN2  = 6;
+const int PWMA  = 5;
+const int STDBY = 8;
 const int CALLED = 10; // calibration LED
 const int CALBUT = 2; // calibration button
 
-#define RSENSOR A0
-#define MSENSOR A1
-#define LSENSOR A2
+const bool L_invert = true;
+const bool R_invert = false;
+
+#define RSENSOR A3
+#define MSENSOR A2
+#define LSENSOR A1
 
 #define CALIBNO 0
 #define CALIBBLACK 1
