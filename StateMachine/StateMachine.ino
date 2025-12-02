@@ -18,6 +18,8 @@ const bool R_invert = false;
 int speedL = 0;
 int speedR = 0;
 
+int gapCounter = 0;
+
 // time stamps
 const int beg_rumba = 127000; //12500
 const int end_rumba = 18650;
@@ -104,6 +106,7 @@ void loop() {
     case FIRST_CURVE:
       kp = 2.0; ki = 0.0; kd = 1.0; 
       diffDrive(255, turn);
+
       if (t > 2000) advanceState(FIRST_TURN);
       break;
 
@@ -111,6 +114,8 @@ void loop() {
     case FIRST_TURN:
       kp = 10.0; ki = 0.0; kd = 1.0;  
       diffDrive(200, turn);
+
+      if (-error > 50) advanceState(SECOND_TURN);
       if (t > 3000) advanceState(SECOND_TURN);
       break;
 
@@ -125,12 +130,14 @@ void loop() {
     case RUMBA:
       kp = 1.0; ki = 0.00005; kd = 1.0;
       diffDrive(120, turn * 0.8);
+      if (-error > 50) advanceState(ONE_EIGHTY);
       if (t > 5500) advanceState(ONE_EIGHTY);
       break;
 
     // -------------------------------------------
     case ONE_EIGHTY:
-      diffDrive(0, 255);   // spin
+      kp = 10.0; ki = 0.00005; kd = 1.0;
+      diffDrive(0, turn * 2);   // spin
       if (t > 6000) advanceState(SHARP_SQUIGGLES);
       break;
 
@@ -138,15 +145,45 @@ void loop() {
     case SHARP_SQUIGGLES:
       kp = 15.0; ki = 0.0; kd = 1.0;
       diffDrive(200, turn * 1.4);
-      if (t > 7000) advanceState(MISSING_LINE);
+      // SENSOR TRANSITION:
+      // Instead of time, we check if the line has disappeared.
+      if (isLineLost(L, M, R)) {
+        gapCounter++; 
+      } else {
+        gapCounter = 0; // Reset if we see a speck of black
+      }
+
+      // If we have seen white for enough consecutive loops, switch state
+      if (gapCounter > 5) {
+        gapCounter = 0; // Reset for next time
+        advanceState(MISSING_LINE);
+      }
+      if (t > 8600) advanceState(MISSING_LINE); 
       break;
 
     // -------------------------------------------
     case MISSING_LINE:
       kp = 2.0; ki = 0.0; kd = 1.0; 
+      
       if (isLineLost(L, M, R)) diffDrive(255, 0);
+      
       else diffDrive(255, turn)
-      if (t > 9000) advanceState(LEFT_90);
+      
+      if (!isLineLost(L, M, R)) {
+        gapCounter++; 
+      } 
+      else {
+        gapCounter = 0; // Reset if we see a speck of black
+      }
+
+      // If we have seen black for enough consecutive loops, switch state
+      if (gapCounter > 15) {
+        gapCounter = 0; // Reset for next time
+        advanceState(LEFT_90);
+      }
+      if (t > 9000) advanceState(MISSING_LINE); 
+      break;
+
 
       
     // -------------------------------------------
