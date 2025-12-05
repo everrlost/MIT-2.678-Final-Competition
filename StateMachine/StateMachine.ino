@@ -218,17 +218,21 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, HIGH);
       kp = 15.0; ki = 0.001; kd = 2.0;
-      if (t - stateStart < 300) {
-      diffDrive(170, (turn * .6) - 50);
+      if (t - stateStart < 900) {
+      diffDrive(255, (turn * .4) - 50);
       digitalWrite(ALERT, HIGH);
       }
-      else if (t - stateStart < 1800) {
-      diffDrive(230, turn * 1.5);
+      else if (t - stateStart <= 1100 && t - stateStart >= 900) {
+      diffDrive(250, turn * 1.4 + 100);
+      digitalWrite(ALERT, LOW); }
+
+      else if (t - stateStart < 1800 && t - stateStart > 1100) {
+      diffDrive(250, turn * 1.4);
       digitalWrite(ALERT, LOW); }
 
 
       else 
-      {diffDrive (255, turn *.6);
+      {diffDrive (255, turn *.7);
       digitalWrite(ALERT, HIGH);}
 
       //SENSOR TRANSITION:
@@ -324,7 +328,7 @@ void loop() {
        }
 
       // // If we have seen white for enough consecutive loops, switch state
-      if ((gapCounter > 5) && (t - stateStart > 2000)) {
+      if ((gapCounter > 10) && (t - stateStart > 2300)) {
         digitalWrite(ALERT, HIGH);
         gapCounter = 0; // Reset for next time
         advanceState(CIRCLE);}
