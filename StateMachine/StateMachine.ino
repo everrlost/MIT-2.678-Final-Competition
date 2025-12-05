@@ -25,10 +25,6 @@ int speedR = 0;
 
 int gapCounter = 0;
 
-// time stamps
-const int beg_rumba = 127000; //12500
-const int end_rumba = 18650;
-const int beg_corner = 21300;
 
 float prevError = 0;
 unsigned long lastTime = 0;
@@ -55,9 +51,11 @@ enum State {
   CIRCLE,
   DONE
 };
-State state = START_STRAIGHT;
+//State state = START_STRAIGHT;
 
 //State state = RUMBA;
+State state = ONE_EIGHTY;
+
 unsigned long stateStart = 0;
 
 // PID STUFF
@@ -95,7 +93,7 @@ void loop() {
   unsigned long t = timer.read();     // your existing timer
   unsigned long now = millis();
 
-  // pre-read sensors (don’t read 20 times like a psychopath)
+  // pre-read sensors 
   int L = map(analogRead(L_sens), 0, 1000, 0, 100);
   int M = map(analogRead(M_sens), 0, 1000, 0, 100);
   int R = map(analogRead(R_sens), 0, 1000, 0, 100);
@@ -113,7 +111,8 @@ void loop() {
 
   if (state == RUMBA) error = R-(L*1.25);//M + R - 255 + 7 * L;
   else if (state == FIRST_CURVE) error = R-(L*1.05);
-    else if (state==SHARP_SQUIGGLES) error = (R-L);
+    else if (state==FIRST_TURN) error = ((R+10)-L);
+    else if ( state == CIRCLE) error = ((R*1.2)-L);
     else error = (R - L);   // your original error model
   int turn  = PID_turn(error, kp, ki, kd);  // tune these later
 
@@ -121,7 +120,7 @@ void loop() {
      else digitalWrite(LOST, LOW);
 
   //---------------------------------------------
-  //        STATE MACHINE (PURE TIME)
+  //        STATE MACHINE 
   //---------------------------------------------
   switch (state) {
 
@@ -137,26 +136,31 @@ void loop() {
     case FIRST_CURVE:
       digitalWrite(GREEN, LOW);
       digitalWrite(YELLOW, HIGH);
-      kp = 15.0; ki = 0.0000; kd = 10.0; 
-      diffDrive(255, turn*1.25);
+      kp = 30.0; ki = 0.0000; kd = 15.0; 
+      diffDrive(255, turn*1.22);
 
-      if (t - stateStart > 2550) advanceState(FIRST_TURN);
+      if (t - stateStart > 2500) advanceState(FIRST_TURN);
       break;
 
     // -------------------------------------------
     case FIRST_TURN:
       digitalWrite(GREEN, HIGH);
       digitalWrite(YELLOW, HIGH);
-      kp = 15.0; ki = 0.0000; kd = 6.0;  
+      kp = 20.0; ki = 0.0005; kd = 10.0;  
       
-      if ((t-stateStart > 1400) && (t - stateStart < 2300)) diffDrive(255, turn*1.25);
-      else diffDrive(255, turn);
-      if (-error > 40) {
+      if ((t-stateStart > 1600) && (t - stateStart < 2300)){
         digitalWrite(ALERT, HIGH);
-        advanceState(SECOND_TURN);
-
+        diffDrive(255, turn*1.25);
       }
-      if (t - stateStart > 3600) advanceState(SECOND_TURN);
+      else 
+      {diffDrive(255, turn);
+      digitalWrite(ALERT, LOW);}
+      // if (-error > 40) {
+      //   digitalWrite(ALERT, HIGH);
+      //   advanceState(SECOND_TURN);
+
+      // }
+      if (t - stateStart > 3700) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -166,7 +170,7 @@ void loop() {
       digitalWrite(RED, HIGH);
       kp = 20.0; ki = 0.0001; kd = 15;  
       //diffDrive(250, turn * 2);
-      if (t - stateStart > 700) diffDrive(250, turn * 1);
+      if (t - stateStart > 850) diffDrive(250, turn * 1);
       else diffDrive(250, turn * 2);
 
       if (t - stateStart > 1250) advanceState(RUMBA);
@@ -199,7 +203,7 @@ void loop() {
       kp = 15.0; ki = 0.00005; kd = 4.0;
       if (t - stateStart < 640) diffDrive(180, 200);   // spin
       if (t - stateStart > 650) diffDrive(210, turn);
-      if (t - stateStart > 1000) advanceState(SHARP_SQUIGGLES);
+      if (t - stateStart > 1200) advanceState(SHARP_SQUIGGLES);
       break;
 
     // -------------------------------------------
@@ -209,7 +213,7 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, HIGH);
       kp = 15.0; ki = 0.001; kd = 2.0;
-      if (t - stateStart < 1800) diffDrive(170, turn * 1.4);
+      if (t - stateStart < 1600) diffDrive(170, turn * 1.4);
       else if (t - stateStart < 2800) diffDrive(230, turn * 1.6);
 
       else diffDrive (255, turn *.6);
@@ -255,7 +259,7 @@ void loop() {
          gapCounter = 0; // Reset for next time
          advanceState(LEFT_90);
        }
-      if (t - stateStart > 700) advanceState(LEFT_90); 
+      if (t - stateStart > 300) advanceState(LEFT_90); 
       break;
 
 
@@ -288,41 +292,60 @@ void loop() {
       digitalWrite(GREEN, LOW);
       digitalWrite(YELLOW, LOW);
       digitalWrite(RED, HIGH);
-      kp = 20.0; ki = 0.0; kd = 3.0;
-      if (t- stateStart < 500) diffDrive(255, turn*1.2);
-      else diffDrive(255, turn * 1.07);
+      kp = 30.0; ki = 0.000; kd = 20.0;
+      if ((t- stateStart < 500) || ((t - stateStart > 1600) && (t - stateStart < 2150)) || ((t - stateStart > 1000) && (t - stateStart < 1200))) {
+        diffDrive(255, turn*1.2);
+        digitalWrite(ALERT, HIGH);}
+
       
-      // if (isLineLost(L, M, R)) {
-      //   gapCounter++; 
-      // } else {
-      //   gapCounter = 0; // Reset if we see a speck of black
-      // }
+
+      else 
+      {diffDrive(255, turn * 0.5);
+      digitalWrite(ALERT, LOW);}
+      
+      if (isLineLost(L, M, R)) {
+         gapCounter++; 
+       } else {
+         gapCounter = 0; // Reset if we see a speck of black
+       }
 
       // // If we have seen white for enough consecutive loops, switch state
-      // if ((gapCounter > 40) && (t - stateStart > 2000)) {
-      //   digitalWrite(ALERT, HIGH);
-      //   gapCounter = 0; // Reset for next time
-      //   advanceState(CIRCLE);
+      if ((gapCounter > 5) && (t - stateStart > 2000)) {
+        digitalWrite(ALERT, HIGH);
+        gapCounter = 0; // Reset for next time
+        advanceState(CIRCLE);}
       // }
-      if (t - stateStart > 2700) advanceState(CIRCLE);
+      if (t - stateStart > 2810) advanceState(CIRCLE);
+      //2510
       break;
 
     // -------------------------------------------
     case CIRCLE:
-      kp = 10.0; ki = 0.0000; kd = 5.0; 
-
+      kp = 20.0; ki = 0.0010; kd = 10.0; 
       digitalWrite(GREEN, HIGH);
       digitalWrite(YELLOW, LOW);
       digitalWrite(RED, HIGH);
       if (t - stateStart < 200) diffDrive(0, -180);
-      else if (t - stateStart < 1850) {
+      else if (t - stateStart < 1800) {
         
-        if (!isLineLost(L, M, R)) diffDrive(255, turn * 1.1);
-        else diffDrive(255, 120);
+      if (isLineLost(L, M, R)){
+        diffDrive(255, 150);}
+        //   gapCounter ++;
+        //   if (gapCounter > 100){
+        //   if (t - stateStart > 1650)diffDrive(255, 120);
+        //   else diffDrive(0, -180);  
+        //   if (t - stateStart > 1750) advanceState(DONE);
+        //   }
+
+        // } 
+        else{
+        diffDrive(255, (turn * 1.1));
+        //gapCounter = 0; 
+        }
 
       }
       else diffDrive(0, -180);   
-      if (t - stateStart > 1950) advanceState(DONE);
+      if (t - stateStart > 1980) advanceState(DONE);
       break;
 
     // -------------------------------------------
@@ -429,10 +452,11 @@ int getSmartError(int L, int M, int R) {
     return error;
 }
 bool isLineLost(int L, int M, int R) {
-  return (L < 65 && M < 65 && R < 65);  // tune threshold if needed
+  return (L < 60 && M < 60 && R < 60);  // tune threshold if needed
 }
 
 void advanceState(State next) {
+    integral = 0;
     state = next;
     stateStart = timer.read();   // reset state timestamp
 
