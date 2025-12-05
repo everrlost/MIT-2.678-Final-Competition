@@ -146,12 +146,16 @@ void loop() {
     case FIRST_TURN:
       digitalWrite(GREEN, HIGH);
       digitalWrite(YELLOW, HIGH);
-      kp = 20.0; ki = 0.0005; kd = 10.0;  
+      kp = 20.0; ki = 0.0005; kd = 15.0;  
       
-      if ((t-stateStart > 1600) && (t - stateStart < 2400)){
+      if ((t-stateStart > 1450) && (t - stateStart < 2180)){
+
         digitalWrite(ALERT, HIGH);
-        diffDrive(255, (turn*1)+140);
-      }
+
+        diffDrive(255, (turn*1.1) + 70);}
+
+        
+      
       else 
       {diffDrive(255, turn);
       digitalWrite(ALERT, LOW);}
@@ -160,7 +164,7 @@ void loop() {
       //   advanceState(SECOND_TURN);
 
       // }
-      if (t - stateStart > 3600) advanceState(SECOND_TURN);
+      if (t - stateStart > 3550) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -170,7 +174,7 @@ void loop() {
       digitalWrite(RED, HIGH);
       kp = 20.0; ki = 0.0001; kd = 15;  
       //diffDrive(250, turn * 2);
-      if (t - stateStart > 850) diffDrive(250, turn * 1);
+      if (t - stateStart > 550) diffDrive(250, turn * 1);
       else diffDrive(250, (turn * 1.1)+ 150);
 
       if (t - stateStart > 1250) advanceState(RUMBA);
@@ -192,7 +196,7 @@ void loop() {
         digitalWrite(ALERT, HIGH);
         advanceState(ONE_EIGHTY);}
       
-      if (t - stateStart > 3100) advanceState(ONE_EIGHTY);
+      if (t - stateStart > 3090) advanceState(ONE_EIGHTY);
       break;
 
     // -------------------------------------------
@@ -218,8 +222,8 @@ void loop() {
       diffDrive(170, (turn * .6) - 50);
       digitalWrite(ALERT, HIGH);
       }
-      else if (t - stateStart < 1600) {
-      diffDrive(230, turn * 1.6);
+      else if (t - stateStart < 1800) {
+      diffDrive(230, turn * 1.5);
       digitalWrite(ALERT, LOW); }
 
 
@@ -284,7 +288,7 @@ void loop() {
       //kp = 30.0; ki = 0.0005; kd = 1.0;
       //if (t - stateStart < 280) diffDrive(100, turn);
       else diffDrive(255, turn);
-      if (t - stateStart > 1500) advanceState(THREE_SIXTY);
+      if (t - stateStart > 1480) advanceState(THREE_SIXTY);
       break;
 
     // -------------------------------------------
@@ -294,7 +298,7 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, LOW);
       diffDrive(255, 190);
-      if (t - stateStart > 1550) advanceState(RHOMBUS);
+      if (t - stateStart > 1500) advanceState(RHOMBUS);
       break;
 
     // -------------------------------------------
@@ -433,6 +437,8 @@ int PID_turn(int error, float Kp, float Ki, float Kd) {
   float dError = (error - prevError) / dt;
 
   float turn = Kp * error + Ki * integral + Kd * dError;
+
+  if (turn > 40) turn = turn * 1.2;
 
   prevError = error;
   lastPID = now;
