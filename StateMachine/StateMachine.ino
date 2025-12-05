@@ -51,10 +51,10 @@ enum State {
   CIRCLE,
   DONE
 };
-//State state = START_STRAIGHT;
+State state = START_STRAIGHT;
 
 //State state = RUMBA;
-State state = ONE_EIGHTY;
+//State state = ONE_EIGHTY;
 
 unsigned long stateStart = 0;
 
@@ -148,9 +148,9 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       kp = 20.0; ki = 0.0005; kd = 10.0;  
       
-      if ((t-stateStart > 1600) && (t - stateStart < 2300)){
+      if ((t-stateStart > 1600) && (t - stateStart < 2400)){
         digitalWrite(ALERT, HIGH);
-        diffDrive(255, turn*1.25);
+        diffDrive(255, (turn*1)+140);
       }
       else 
       {diffDrive(255, turn);
@@ -160,7 +160,7 @@ void loop() {
       //   advanceState(SECOND_TURN);
 
       // }
-      if (t - stateStart > 3700) advanceState(SECOND_TURN);
+      if (t - stateStart > 3600) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -171,7 +171,7 @@ void loop() {
       kp = 20.0; ki = 0.0001; kd = 15;  
       //diffDrive(250, turn * 2);
       if (t - stateStart > 850) diffDrive(250, turn * 1);
-      else diffDrive(250, turn * 2);
+      else diffDrive(250, (turn * 1.1)+ 150);
 
       if (t - stateStart > 1250) advanceState(RUMBA);
       break;
@@ -192,7 +192,7 @@ void loop() {
         digitalWrite(ALERT, HIGH);
         advanceState(ONE_EIGHTY);}
       
-      if (t - stateStart > 3500) advanceState(ONE_EIGHTY);
+      if (t - stateStart > 3100) advanceState(ONE_EIGHTY);
       break;
 
     // -------------------------------------------
@@ -200,6 +200,7 @@ void loop() {
       digitalWrite(GREEN, LOW);
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, HIGH);
+      digitalWrite(ALERT, LOW);
       kp = 15.0; ki = 0.00005; kd = 4.0;
       if (t - stateStart < 640) diffDrive(180, 200);   // spin
       if (t - stateStart > 650) diffDrive(210, turn);
@@ -208,15 +209,24 @@ void loop() {
 
     // -------------------------------------------
     case SHARP_SQUIGGLES:
-      digitalWrite(ALERT, LOW);
+      
       digitalWrite(GREEN, HIGH);
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, HIGH);
       kp = 15.0; ki = 0.001; kd = 2.0;
-      if (t - stateStart < 1600) diffDrive(170, turn * 1.4);
-      else if (t - stateStart < 2800) diffDrive(230, turn * 1.6);
+      if (t - stateStart < 300) {
+      diffDrive(170, (turn * .6) - 50);
+      digitalWrite(ALERT, HIGH);
+      }
+      else if (t - stateStart < 1600) {
+      diffDrive(230, turn * 1.6);
+      digitalWrite(ALERT, LOW); }
 
-      else diffDrive (255, turn *.6);
+
+      else 
+      {diffDrive (255, turn *.6);
+      digitalWrite(ALERT, HIGH);}
+
       //SENSOR TRANSITION:
       //Instead of time, we check if the line has disappeared.
       if (isLineLost(L, M, R)) {
@@ -226,7 +236,7 @@ void loop() {
       }
 
       // If we have seen white for enough consecutive loops, switch state
-      if ((gapCounter > 400) && (t - stateStart) > 2800) {
+      if ((gapCounter > 400) && (t - stateStart) > 2000) {
         digitalWrite(ALERT, HIGH);
         gapCounter = 0; // Reset for next time
         advanceState(MISSING_LINE);
