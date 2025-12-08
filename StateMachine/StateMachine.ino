@@ -127,9 +127,9 @@ void loop() {
     // -------------------------------------------
     case START_STRAIGHT:
       digitalWrite(GREEN, HIGH);
-      kp = 14.0; ki = 0.0; kd = 2.0; 
-      diffDrive(255, turn);
-      if (t > 1000) advanceState(FIRST_CURVE);
+      kp = 6.0; ki = 0.0; kd = 5.0; 
+      diffDrive(255, turn * .3);
+      if (t > 900) advanceState(FIRST_CURVE);
       break;
 
     // -------------------------------------------
@@ -137,7 +137,17 @@ void loop() {
       digitalWrite(GREEN, LOW);
       digitalWrite(YELLOW, HIGH);
       kp = 30.0; ki = 0.0000; kd = 15.0; 
-      diffDrive(255, turn*1.22);
+      if (abs(turn) > 30) 
+      {diffDrive(255, turn*1.22);
+       digitalWrite(ALERT, HIGH);
+      }
+      else  if (abs(turn) > 22) 
+      {diffDrive(255, turn*1.1);
+       digitalWrite(ALERT, HIGH);
+      }
+      else {diffDrive(255, turn*.2);
+        digitalWrite(ALERT, LOW);}
+
 
       if (t - stateStart > 2500) advanceState(FIRST_TURN);
       break;
@@ -148,16 +158,16 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       kp = 20.0; ki = 0.0005; kd = 15.0;  
       
-      if ((t-stateStart > 1450) && (t - stateStart < 2180)){
+      if ((t-stateStart > 1450) && (t - stateStart < 2200)){
 
         digitalWrite(ALERT, HIGH);
 
-        diffDrive(255, (turn*1.1) + 70);}
+        diffDrive(255, (turn*1.1) + 90);}
 
         
       
       else 
-      {diffDrive(255, turn);
+      {diffDrive(255, turn * .8);
       digitalWrite(ALERT, LOW);}
       // if (-error > 40) {
       //   digitalWrite(ALERT, HIGH);
@@ -218,17 +228,24 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       digitalWrite(RED, HIGH);
       kp = 15.0; ki = 0.001; kd = 2.0;
-      if (t - stateStart < 300) {
-      diffDrive(170, (turn * .6) - 50);
+      if (t - stateStart < 900 && isLineLost(L,M,R)) {
+      diffDrive(255, (turn * .4) - 50);
       digitalWrite(ALERT, HIGH);
       }
-      else if (t - stateStart < 1800) {
-      diffDrive(230, turn * 1.5);
+      else if (t - stateStart < 900){
+        diffDrive(250, turn * 1.4 + 100);
+      }
+      else if (t - stateStart <= 1100 && t - stateStart >= 900) {
+      diffDrive(250, turn * 1.4 + 100);
+      digitalWrite(ALERT, LOW); }
+
+      else if (t - stateStart < 1800 && t - stateStart > 1100) {
+      diffDrive(250, turn * 1.4);
       digitalWrite(ALERT, LOW); }
 
 
       else 
-      {diffDrive (255, turn *.6);
+      {diffDrive (255, turn *.7);
       digitalWrite(ALERT, HIGH);}
 
       //SENSOR TRANSITION:
@@ -324,7 +341,7 @@ void loop() {
        }
 
       // // If we have seen white for enough consecutive loops, switch state
-      if ((gapCounter > 5) && (t - stateStart > 2000)) {
+      if ((gapCounter > 10) && (t - stateStart > 2300)) {
         digitalWrite(ALERT, HIGH);
         gapCounter = 0; // Reset for next time
         advanceState(CIRCLE);}
