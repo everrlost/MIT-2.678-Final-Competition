@@ -128,9 +128,9 @@ void loop() {
     // -------------------------------------------
      case START_STRAIGHT:
       digitalWrite(GREEN, HIGH);
-      kp = 6.0; ki = 0.0; kd = 5.0; 
-      diffDrive(255, turn * .4);
-      if (t > 880) advanceState(FIRST_CURVE);
+      kp = 10.0; ki = 0.0; kd = 5.0; 
+      diffDrive(255, turn * .6);
+      if (t > 940) advanceState(FIRST_CURVE);
       break;
 
     // -------------------------------------------
@@ -150,7 +150,7 @@ void loop() {
         digitalWrite(ALERT, LOW);}
 
 
-      if (t - stateStart > 2700) advanceState(FIRST_TURN);
+      if (t - stateStart > 2790) advanceState(FIRST_TURN);
       break;
 
 
@@ -177,7 +177,7 @@ void loop() {
       //   advanceState(SECOND_TURN);
 
       // }
-      if (t - stateStart > 3400) advanceState(SECOND_TURN);
+      if (t - stateStart > 3500) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -205,7 +205,7 @@ void loop() {
       //if (isLineLost(L, M, R)) drive (240, 255);
       //else diffDrive(255, turn);
       if (t - stateStart < 1300) diffDrive(255, turn*.75);
-      else diffDrive(255, turn * .4);
+      else diffDrive(255, turn * .5);
       if (isLineLost(L,M,R) && t-stateStart>2600) {
         digitalWrite(ALERT, HIGH);
         advanceState(ONE_EIGHTY);}
@@ -234,7 +234,7 @@ void loop() {
       kp = 15.0; ki = 0.001; kd = 2.0;
       if (t - stateStart < 900) {
       //diffDrive(255, (turn * .4) - 78);
-      diffDrive(255, (turn * 0) - 25);
+      diffDrive(255, (turn * 0) - 35);
 
       digitalWrite(ALERT, HIGH);}
 
