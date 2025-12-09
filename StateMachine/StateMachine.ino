@@ -177,7 +177,7 @@ void loop() {
       //   advanceState(SECOND_TURN);
 
       // }
-      if (t - stateStart > 3500) advanceState(SECOND_TURN);
+      if (t - stateStart > 3200) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -187,7 +187,7 @@ void loop() {
       digitalWrite(RED, HIGH);
       kp = 20.0; ki = 0.0001; kd = 15;  
       //diffDrive(250, turn * 2);
-      if (t - stateStart > 550) diffDrive(250, turn * 1);
+      if (t - stateStart > 600) diffDrive(250, turn * 1);
       else diffDrive(250, (turn * 1.1)+ 150);
 
       if (t - stateStart > 1250) advanceState(RUMBA);
@@ -205,7 +205,7 @@ void loop() {
       //if (isLineLost(L, M, R)) drive (240, 255);
       //else diffDrive(255, turn);
       if (t - stateStart < 1300) diffDrive(255, turn*.75);
-      else diffDrive(255, turn * .5);
+      else diffDrive(255, turn * .55);
       if (isLineLost(L,M,R) && t-stateStart>2600) {
         digitalWrite(ALERT, HIGH);
         advanceState(ONE_EIGHTY);}
@@ -251,13 +251,13 @@ void loop() {
       digitalWrite(RED, LOW);
 
 
-      if (t - stateStart < 200) {
-        diffDrive(250, turn * 1.4 + 100);
+      if (t - stateStart < 280) {
+        diffDrive(250, turn * 1.8 + 90);
         digitalWrite(ALERT, LOW); }
 
 
       else 
-        {diffDrive (255, turn *.7);
+        {diffDrive (255, turn *.8);
         digitalWrite(ALERT, HIGH);}
 
       //SENSOR TRANSITION:
@@ -345,7 +345,7 @@ void loop() {
       
 
       else 
-      {diffDrive(255, turn * 0.45);
+      {diffDrive(255, turn * 0.6);
       digitalWrite(ALERT, LOW);}
       
       if (isLineLost(L, M, R)) {
@@ -355,7 +355,7 @@ void loop() {
        }
 
       // // If we have seen white for enough consecutive loops, switch state
-      if ((gapCounter > 10) && (t - stateStart > 2500)) {
+      if ((gapCounter > 10) && (t - stateStart > 2600)) {
         digitalWrite(ALERT, HIGH);
         gapCounter = 0; // Reset for next time
         advanceState(CIRCLE);}
@@ -374,7 +374,7 @@ void loop() {
       else if (t - stateStart < 1700) {
         
       if (isLineLost(L, M, R)){
-        diffDrive(255, 150);}
+        diffDrive(255, turn * 2);}
         //   gapCounter ++;
         //   if (gapCounter > 100){
         //   if (t - stateStart > 1650)diffDrive(255, 120);
