@@ -129,8 +129,8 @@ void loop() {
      case START_STRAIGHT:
       digitalWrite(GREEN, HIGH);
       kp = 10.0; ki = 0.0; kd = 5.0; 
-      diffDrive(255, turn * .6);
-      if (t > 940) advanceState(FIRST_CURVE);
+      diffDrive(200, turn * .6);
+      if (t > 1340) advanceState(FIRST_CURVE);
       break;
 
     // -------------------------------------------
@@ -139,18 +139,18 @@ void loop() {
       digitalWrite(YELLOW, HIGH);
       kp = 30.0; ki = 0.0000; kd = 15.0; 
       if (abs(turn) > 30) 
-      {diffDrive(255, turn*1.23);
+      {diffDrive(200, turn*1.13);
        digitalWrite(ALERT, HIGH);
       }
       else  if (abs(turn) > 22) 
-      {diffDrive(255, turn*1.2);
+      {diffDrive(200, turn*1.2);
        digitalWrite(ALERT, HIGH);
       }
-      else {diffDrive(255, turn*.2);
+      else {diffDrive(200, turn*.2);
         digitalWrite(ALERT, LOW);}
 
 
-      if (t - stateStart > 2790) advanceState(FIRST_TURN);
+      if (t - stateStart > 3790) advanceState(FIRST_TURN);
       break;
 
 
@@ -161,15 +161,15 @@ void loop() {
 
       kp = 20.0; ki = 0.0005; kd = 15.0;  
       
-      if ((t-stateStart > 1100) && (t - stateStart < 2300)){
+      if ((t-stateStart > 1400) && (t - stateStart < 2800)){
 
         digitalWrite(ALERT, HIGH);
         
-        diffDrive(255, (turn*1.15) + 105);}
+        diffDrive(200, (turn*1.1) + 60);}
 
         
       
-      else {diffDrive(255, turn * .75);
+      else {diffDrive(200, turn * .75);
       digitalWrite(ALERT, LOW);}
 
       // if (-error > 40) {
@@ -177,7 +177,7 @@ void loop() {
       //   advanceState(SECOND_TURN);
 
       // }
-      if (t - stateStart > 3500) advanceState(SECOND_TURN);
+      if (t - stateStart > 5000) advanceState(SECOND_TURN);
       break;
 
     // -------------------------------------------
@@ -188,7 +188,7 @@ void loop() {
       kp = 20.0; ki = 0.0001; kd = 15;  
       //diffDrive(250, turn * 2);
       if (t - stateStart > 550) diffDrive(250, turn * 1);
-      else diffDrive(250, (turn * 1.1)+ 150);
+      else diffDrive(200, (turn * 1.1)+ 150);
 
       if (t - stateStart > 1250) advanceState(RUMBA);
       break;
