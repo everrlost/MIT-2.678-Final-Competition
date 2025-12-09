@@ -252,12 +252,12 @@ void loop() {
 
 
       if (t - stateStart < 280) {
-        diffDrive(250, turn * 1.8 + 90);
+        diffDrive(250, turn * 1.8 + 70);
         digitalWrite(ALERT, LOW); }
 
 
       else 
-        {diffDrive (255, turn *.8);
+        {diffDrive (255, turn *.7);
         digitalWrite(ALERT, HIGH);}
 
       //SENSOR TRANSITION:
@@ -279,6 +279,7 @@ void loop() {
       break;
 
 
+
     // -------------------------------------------
     case MISSING_LINE:
       digitalWrite(ALERT, LOW);
@@ -287,7 +288,7 @@ void loop() {
       digitalWrite(RED, LOW);
       kp = 10.0; ki = 0.00005; kd = 4.0; 
       
-      if (isLineLost(L, M, R)) diffDrive(150, -25);
+      if (isLineLost(L, M, R)) diffDrive(150, -15);
       
       else diffDrive(200, turn);
       
@@ -299,12 +300,12 @@ void loop() {
       }
 
       // If we have seen black for enough consecutive loops, switch state
-       if (gapCounter > 400) {
+       if (gapCounter > 300) {
          digitalWrite(ALERT, HIGH);
          gapCounter = 0; // Reset for next time
          advanceState(LEFT_90);
        }
-      if (t - stateStart > 450) advanceState(LEFT_90); //300
+      if (t - stateStart > 430) advanceState(LEFT_90); //300
       break; 
 
 
@@ -338,14 +339,14 @@ void loop() {
       digitalWrite(YELLOW, LOW);
       digitalWrite(RED, HIGH);
       kp = 30.0; ki = 0.000; kd = 20.0;
-      if ((t- stateStart < 500) || ((t - stateStart > 1600) && (t - stateStart < 2150)) || ((t - stateStart > 1000) && (t - stateStart < 1200))) {
+      if ((t- stateStart < 500) || ((t - stateStart > 1700) && (t - stateStart < 2350)) || ((t - stateStart > 1000) && (t - stateStart < 1400))) {
         diffDrive(255, turn*1.2);
         digitalWrite(ALERT, HIGH);}
 
       
 
       else 
-      {diffDrive(255, turn * 0.6);
+      {diffDrive(255, turn * 0.65);
       digitalWrite(ALERT, LOW);}
       
       if (isLineLost(L, M, R)) {
@@ -374,7 +375,9 @@ void loop() {
       else if (t - stateStart < 1700) {
         
       if (isLineLost(L, M, R)){
-        diffDrive(255, turn * 2);}
+        if (t - stateStart < 700) diffDrive(255, -150);
+        else if (t - stateStart > 700) diffDrive(255, 150);
+
         //   gapCounter ++;
         //   if (gapCounter > 100){
         //   if (t - stateStart > 1650)diffDrive(255, 120);
@@ -382,7 +385,7 @@ void loop() {
         //   if (t - stateStart > 1750) advanceState(DONE);
         //   }
 
-        // } 
+         } 
         else{
         diffDrive(255, (turn * 1.1));
         //gapCounter = 0; 
